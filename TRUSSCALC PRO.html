@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrussCalc Pro — Advanced Structural Analysis</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
+:root {
+  --bg:#0c0e14; --panel:#12151f; --panel2:#181c2a; --border:#1e2336;
+  --accent:#4f8cff; --green:#34d399; --red:#f87171; --yellow:#fbbf24;
+  --purple:#a78bfa; --orange:#fb923c; --cyan:#22d3ee;
+  --text:#e2e8f0; --muted:#64748b; --muted2:#94a3b8;
+  --canvas-bg:#0e1118;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+/* HEADER */
+header{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:10;}
+.logo{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:var(--accent);}
+.logo em{color:var(--green);font-style:normal;}
+.hbadge{font-size:10px;font-family:'IBM Plex Mono',monospace;background:rgba(79,140,255,.12);border:1px solid rgba(79,140,255,.25);color:var(--accent);padding:2px 8px;border-radius:3px;}
+.header-actions{margin-left:auto;display:flex;gap:6px;}
+/* LAYOUT */
+.app{display:flex;flex:1;overflow:hidden;}
+/* LEFT SIDEBAR */
+.sidebar{width:290px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.stab{flex:1;padding:8px 2px;text-align:center;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;user-select:none;}
+.stab.on{color:var(--accent);border-bottom-color:var(--accent);}
+.stab:hover:not(.on){color:var(--text);}
+.stab-body{display:none;flex:1;overflow-y:auto;padding:12px;flex-direction:column;gap:10px;}
+.stab-body.on{display:flex;}
+/* CANVAS CENTER */
+.center{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.ctoolbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.tbtn{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted2);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;transition:.15s;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.tbtn:hover{color:var(--text);border-color:var(--accent);}
+.tbtn.on{background:rgba(79,140,255,.15);color:var(--accent);border-color:var(--accent);}
+.tbtn.danger.on{background:rgba(248,113,113,.15);color:var(--red);border-color:var(--red);}
+.tbtn.green.on{background:rgba(52,211,153,.12);color:var(--green);border-color:var(--green);}
+canvas{display:block;flex:1;width:100%;cursor:crosshair;}
+/* BOTTOM PANEL */
+.bottom-panel{background:var(--panel);border-top:1px solid var(--border);flex-shrink:0;}
+.bp-tabs{display:flex;border-bottom:1px solid var(--border);}
+.bptab{padding:7px 14px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;}
+.bptab.on{color:var(--green);border-bottom-color:var(--green);}
+.bptab:hover:not(.on){color:var(--text);}
+.bp-content{height:220px;overflow:hidden;position:relative;}
+.bp-pane{display:none;height:100%;overflow:auto;padding:12px;}
+.bp-pane.on{display:block;}
+.diag-canvas{width:100%;height:190px;display:block;}
+/* RIGHT PANEL */
+.rpanel{width:260px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.rp-header{padding:10px 12px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green);flex-shrink:0;}
+.rp-body{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px;}
+/* FORM ELEMENTS */
+.flabel{font-size:10px;color:var(--muted);margin-bottom:3px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;}
+.frow{display:grid;gap:5px;}
+.frow2{grid-template-columns:1fr 1fr;}
+.frow3{grid-template-columns:1fr 1fr 1fr;}
+input,select{width:100%;background:#161924;border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;transition:.15s;}
+input:focus,select:focus{border-color:var(--accent);}
+.btn{cursor:pointer;border-radius:5px;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;border:none;transition:.15s;padding:6px 12px;}
+.btn-p{background:var(--accent);color:#fff;width:100%;padding:7px;font-size:12px;}
+.btn-p:hover{background:#3a7ae8;}
+.btn-g{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.25);width:100%;padding:7px;}
+.btn-g:hover{background:rgba(52,211,153,.2);}
+.btn-r{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2);font-size:11px;padding:3px 7px;}
+.btn-r:hover{background:rgba(248,113,113,.18);}
+.btn-s{background:rgba(255,255,255,.05);color:var(--text);border:1px solid var(--border);width:100%;padding:6px;}
+.btn-s:hover{background:rgba(255,255,255,.09);}
+.btn-y{background:rgba(251,191,36,.1);color:var(--yellow);border:1px solid rgba(251,191,36,.2);width:100%;padding:7px;}
+.btn-y:hover{background:rgba(251,191,36,.18);}
+.divider{border:none;border-top:1px solid var(--border);margin:2px 0;}
+/* CARDS */
+.card{background:#161924;border:1px solid var(--border);border-radius:6px;padding:10px;}
+.card-title{font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px;}
+.srow{display:flex;justify-content:space-between;padding:2px 0;font-size:11px;}
+.sl{color:var(--muted2);}
+.sv{font-family:'IBM Plex Mono',monospace;}
+.sv.t{color:var(--green);}
+.sv.c{color:var(--red);}
+.sv.z{color:var(--muted);}
+/* TABLE */
+.dtable{width:100%;border-collapse:collapse;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+.dtable th{text-align:left;color:var(--muted);padding:3px 5px;border-bottom:1px solid var(--border);font-weight:400;font-size:10px;}
+.dtable td{padding:4px 5px;border-bottom:1px solid rgba(30,35,54,.5);}
+.dtable tr:hover td{background:rgba(79,140,255,.04);}
+/* PRESETS */
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.pcard{background:#161924;border:1px solid var(--border);border-radius:5px;padding:7px 9px;cursor:pointer;transition:.15s;}
+.pcard:hover{border-color:var(--accent);background:rgba(79,140,255,.06);}
+.pcard .pn{font-size:11px;font-weight:600;color:var(--text);}
+.pcard .pd{font-size:10px;color:var(--muted);margin-top:1px;}
+/* NODE POPUP */
+.popup{position:fixed;display:none;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:100;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.popup.show{display:block;}
+.popup-title{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--accent);margin-bottom:10px;}
+/* STATUS */
+.status-bar{background:var(--bg);border-top:1px solid var(--border);padding:3px 12px;display:flex;gap:16px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);flex-shrink:0;}
+.status-item span{color:var(--muted2);}
+/* LEGEND */
+.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:10px;}
+.litem{display:flex;align-items:center;gap:4px;}
+.ldot{width:10px;height:10px;border-radius:2px;}
+/* ALERT */
+.alert{padding:7px 10px;border-radius:5px;font-size:11px;margin:3px 0;}
+.alert-e{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);color:var(--red);}
+.alert-s{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);color:var(--green);}
+.alert-w{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);color:var(--yellow);}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.empty-hint{text-align:center;color:var(--muted);padding:24px 10px;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+.badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-family:'IBM Plex Mono',monospace;}
+.badge-t{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.2);}
+.badge-c{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.badge-z{background:rgba(100,116,139,.1);color:var(--muted);border:1px solid rgba(100,116,139,.15);}
+.badge-d{background:rgba(79,140,255,.12);color:var(--accent);border:1px solid rgba(79,140,255,.2);}
+.badge-i{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.2);}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">TRUSS<em>CALC</em> <span style="color:var(--purple);font-size:12px">PRO</span></div>
+  <div class="hbadge">Direct Stiffness Method</div>
+  <div class="hbadge" style="color:var(--green);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.08)">v2.0 — Interactive Draw Mode</div>
+  <div class="header-actions">
+    <button class="tbtn" onclick="clearAll()">🗑 Clear</button>
+    <button class="tbtn" onclick="exportSVG()">⬇ Export SVG</button>
+  </div>
+</header>
+
+<div class="app">
+<!-- LEFT SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-tabs">
+    <div class="stab on" onclick="sTab('draw')">DRAW</div>
+    <div class="stab" onclick="sTab('props')">PROPS</div>
+    <div class="stab" onclick="sTab('loads')">LOADS</div>
+    <div class="stab" onclick="sTab('presets')">PRESETS</div>
+  </div>
+
+  <!-- DRAW TAB -->
+  <div class="stab-body on" id="st-draw">
+    <div class="card">
+      <div class="card-title">Drawing Tools</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+        <button class="tbtn on" id="tool-select" onclick="setTool('select')">↖ Select</button>
+        <button class="tbtn" id="tool-node" onclick="setTool('node')">◉ Add Node</button>
+        <button class="tbtn" id="tool-member" onclick="setTool('member')">╱ Add Member</button>
+        <button class="tbtn danger" id="tool-delete" onclick="setTool('delete')">✕ Delete</button>
+        <button class="tbtn" id="tool-move" onclick="setTool('move')">✥ Move Node</button>
+        <button class="tbtn" id="tool-support" onclick="setTool('support')">△ Support</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Support Type (for Support tool)</div>
+      <select id="supportType">
+        <option value="pin">Pin (2 reactions)</option>
+        <option value="roller_x">Roller-X (Vert. reaction)</option>
+        <option value="roller_y">Roller-Y (Horiz. reaction)</option>
+        <option value="fixed">Fixed (3 reactions)</option>
+        <option value="none">Remove Support</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-title">Manual Node Entry</div>
+      <div class="frow frow2">
+        <div><div class="flabel">X (m)</div><input type="number" id="nx" value="0" step="0.5"></div>
+        <div><div class="flabel">Y (m)</div><input type="number" id="ny" value="0" step="0.5"></div>
+      </div>
+      <div style="margin-top:6px"><div class="flabel">Support</div>
+        <select id="nsup"><option value="none">None</option><option value="pin">Pin</option><option value="roller_x">Roller-X</option><option value="roller_y">Roller-Y</option><option value="fixed">Fixed</option></select>
+      </div>
+      <button class="btn btn-p" style="margin-top:6px" onclick="addNodeManual()">+ Add Node</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Manual Member Entry</div>
+      <div class="frow frow2">
+        <div><div class="flabel">From Node#</div><input type="number" id="mfrom" value="1" min="1"></div>
+        <div><div class="flabel">To Node#</div><input type="number" id="mto" value="2" min="1"></div>
+      </div>
+      <button class="btn btn-p" style="margin-top:6px" onclick="addMemberManual()">+ Add Member</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Draw Settings</div>
+      <div class="frow frow2">
+        <div><div class="flabel">Snap Grid (m)</div><input type="number" id="snapGrid" value="1" step="0.5" min="0"></div>
+        <div><div class="flabel">Node size</div><input type="number" id="nodeSize" value="7" min="3" max="15"></div>
+      </div>
+      <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="tbtn" onclick="toggleGrid()">Grid</button>
+        <button class="tbtn" onclick="fitView()">Fit</button>
+        <button class="tbtn" onclick="zoomIn()">+</button>
+        <button class="tbtn" onclick="zoomOut()">−</button>
+      </div>
+    </div>
+    <!-- Nodes list -->
+    <div class="card">
+      <div class="card-title">Nodes</div>
+      <div id="nodesList" style="font-size:11px;max-height:160px;overflow-y:auto;"></div>
+    </div>
+    <!-- Members list -->
+    <div class="card">
+      <div class="card-title">Members</div>
+      <div id="membersList" style="font-size:11px;max-height:160px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- PROPS TAB -->
+  <div class="stab-body" id="st-props">
+    <div class="card">
+      <div class="card-title">Default Member Properties</div>
+      <div class="frow frow2">
+        <div><div class="flabel">E (GPa)</div><input type="number" id="defE" value="200" step="1"></div>
+        <div><div class="flabel">A (cm²)</div><input type="number" id="defA" value="10" step="0.1"></div>
+      </div>
+      <div style="margin-top:6px"><button class="btn btn-s" onclick="applyPropsAll()">Apply to All Members</button></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Selected Member Override</div>
+      <div id="selMemberProps"><div class="empty-hint">Select a member to edit</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">All Members</div>
+      <div id="allMemberProps" style="max-height:300px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- LOADS TAB -->
+  <div class="stab-body" id="st-loads">
+    <div class="card">
+      <div class="card-title">Point Load at Node</div>
+      <div class="frow frow3">
+        <div><div class="flabel">Node#</div><input type="number" id="lnode" value="1" min="1"></div>
+        <div><div class="flabel">Fx(kN)</div><input type="number" id="lfx" value="0" step="5"></div>
+        <div><div class="flabel">Fy(kN)</div><input type="number" id="lfy" value="-50" step="5"></div>
+      </div>
+      <button class="btn btn-p" style="margin-top:6px" onclick="addPointLoad()">+ Add Point Load</button>
+    </div>
+    <div class="card">
+      <div class="card-title">UDL on Member (Uniform Dist. Load)</div>
+      <div class="frow frow2">
+        <div><div class="flabel">Member#</div><input type="number" id="udlMember" value="1" min="1"></div>
+        <div><div class="flabel">w (kN/m)</div><input type="number" id="udlW" value="-10" step="1"></div>
+      </div>
+      <div class="flabel" style="margin-top:4px">Direction</div>
+      <select id="udlDir"><option value="y">Global Y (gravity)</option><option value="x">Global X (wind)</option><option value="local">Local (perpendicular)</option></select>
+      <button class="btn btn-p" style="margin-top:6px" onclick="addUDL()">+ Add UDL</button>
+    </div>
+    <div class="card">
+      <div class="card-title">VDL on Member (Varying Dist. Load)</div>
+      <div class="frow frow2">
+        <div><div class="flabel">Member#</div><input type="number" id="vdlMember" value="1" min="1"></div>
+        <div><div class="flabel">w₁ (kN/m)</div><input type="number" id="vdlW1" value="0" step="1"></div>
+      </div>
+      <div class="frow frow2" style="margin-top:5px">
+        <div><div class="flabel">w₂ (kN/m)</div><input type="number" id="vdlW2" value="-20" step="1"></div>
+        <div><div class="flabel">Direction</div><select id="vdlDir"><option value="y">Global Y</option><option value="x">Global X</option></select></div>
+      </div>
+      <button class="btn btn-p" style="margin-top:6px" onclick="addVDL()">+ Add VDL</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Applied Loads</div>
+      <div id="loadsList" style="max-height:220px;overflow-y:auto;"></div>
+    </div>
+    <button class="btn btn-g" onclick="analyzeClick()">▶ ANALYZE TRUSS</button>
+  </div>
+
+  <!-- PRESETS TAB -->
+  <div class="stab-body" id="st-presets">
+    <div class="flabel">Example Structures</div>
+    <div class="pgrid">
+      <div class="pcard" onclick="loadPreset('simple')"><div class="pn">Simple</div><div class="pd">3n 3m triangle</div></div>
+      <div class="pcard" onclick="loadPreset('warren')"><div class="pn">Warren</div><div class="pd">7n 11m</div></div>
+      <div class="pcard" onclick="loadPreset('pratt')"><div class="pn">Pratt</div><div class="pd">9n 15m</div></div>
+      <div class="pcard" onclick="loadPreset('howe')"><div class="pn">Howe</div><div class="pd">9n 15m</div></div>
+      <div class="pcard" onclick="loadPreset('fink')"><div class="pn">Fink Roof</div><div class="pd">9n 15m</div></div>
+      <div class="pcard" onclick="loadPreset('k')"><div class="pn">K-Truss</div><div class="pd">10n 17m</div></div>
+      <div class="pcard" onclick="loadPreset('cantilever')"><div class="pn">Cantilever</div><div class="pd">6n 9m</div></div>
+      <div class="pcard" onclick="loadPreset('baltimore')"><div class="pn">Baltimore</div><div class="pd">10n 17m</div></div>
+    </div>
+    <hr class="divider">
+    <button class="btn btn-r" style="width:100%;padding:7px" onclick="clearAll()">🗑 Clear All</button>
+  </div>
+</div>
+
+<!-- CENTER CANVAS -->
+<div class="center">
+  <div class="ctoolbar">
+    <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">VIEW:</span>
+    <button class="tbtn on" id="vbtn-truss" onclick="setView('truss')">Truss</button>
+    <button class="tbtn" id="vbtn-deformed" onclick="setView('deformed')">Deformed</button>
+    <button class="tbtn" id="vbtn-optimized" onclick="setView('optimized')">Optimized</button>
+    <span style="width:1px;height:16px;background:var(--border);margin:0 4px;"></span>
+    <span id="toolLabel" style="font-size:10px;color:var(--accent);font-family:'IBM Plex Mono',monospace">Mode: SELECT</span>
+    <span style="flex:1"></span>
+    <span id="mouseCoords" style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace"></span>
+  </div>
+  <canvas id="mainCanvas"></canvas>
+
+  <!-- BOTTOM DIAGRAMS PANEL -->
+  <div class="bottom-panel">
+    <div class="bp-tabs">
+      <div class="bptab on" onclick="bpTab('axial')">Axial Forces</div>
+      <div class="bptab" onclick="bpTab('shear')">Shear Force Diagram</div>
+      <div class="bptab" onclick="bpTab('bending')">Bending Moment Diagram</div>
+      <div class="bptab" onclick="bpTab('summary')">Summary Table</div>
+    </div>
+    <div class="bp-content">
+      <div class="bp-pane on" id="bp-axial"><canvas class="diag-canvas" id="axialCanvas"></canvas></div>
+      <div class="bp-pane" id="bp-shear"><canvas class="diag-canvas" id="shearCanvas"></canvas></div>
+      <div class="bp-pane" id="bp-bending"><canvas class="diag-canvas" id="bendingCanvas"></canvas></div>
+      <div class="bp-pane" id="bp-summary" style="padding:8px;overflow:auto;height:100%;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="rpanel">
+  <div class="rp-header">// ANALYSIS RESULTS</div>
+  <div class="rp-body" id="rpBody">
+    <div class="empty-hint">Build a truss and click<br>ANALYZE to see results.</div>
+  </div>
+</div>
+</div>
+
+<div class="status-bar">
+  <div class="status-item">Nodes: <span id="sNodes">0</span></div>
+  <div class="status-item">Members: <span id="sMembers">0</span></div>
+  <div class="status-item">Loads: <span id="sLoads">0</span></div>
+  <div class="status-item">Determinacy: <span id="sDet">—</span></div>
+  <div class="status-item" id="sMsg" style="color:var(--accent)"></div>
+</div>
+
+<!-- NODE CONTEXT POPUP -->
+<div class="popup" id="nodePopup">
+  <div class="popup-title" id="ppTitle">Node N1</div>
+  <div style="display:flex;flex-direction:column;gap:5px;">
+    <div class="frow frow2">
+      <div><div class="flabel">X (m)</div><input type="number" id="ppX" step="0.1"></div>
+      <div><div class="flabel">Y (m)</div><input type="number" id="ppY" step="0.1"></div>
+    </div>
+    <div><div class="flabel">Support</div>
+      <select id="ppSupport"><option value="none">None</option><option value="pin">Pin</option><option value="roller_x">Roller-X</option><option value="roller_y">Roller-Y</option><option value="fixed">Fixed</option></select>
+    </div>
+    <button class="btn btn-p" onclick="saveNodePopup()">Save</button>
+    <button class="btn btn-r" style="width:100%;padding:6px" onclick="deleteNodePopup()">Delete Node</button>
+    <button class="btn btn-s" onclick="closePopup()">Cancel</button>
+  </div>
+</div>
+<div class="popup" id="memberPopup">
+  <div class="popup-title" id="mpTitle">Member M1</div>
+  <div style="display:flex;flex-direction:column;gap:5px;">
+    <div class="frow frow2">
+      <div><div class="flabel">E (GPa)</div><input type="number" id="mpE" step="1"></div>
+      <div><div class="flabel">A (cm²)</div><input type="number" id="mpA" step="0.1"></div>
+    </div>
+    <div id="mpInfo" style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding:4px 0;"></div>
+    <button class="btn btn-p" onclick="saveMemberPopup()">Save</button>
+    <button class="btn btn-r" style="width:100%;padding:6px" onclick="deleteMemberPopup()">Delete Member</button>
+    <button class="btn btn-s" onclick="closePopup()">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ======= STATE =======
+let nodes=[],members=[],loads=[],results=null;
+let selNode=-1,selMember=-1,memberStart=-1;
+let popupNodeIdx=-1,popupMemberIdx=-1;
+let activeTool='select',activeView='truss';
+let isPanning=false,panStart={x:0,y:0};
+let isDraggingNode=false,dragNodeIdx=-1;
+let scale=60,origin={x:100,y:300};
+let showGrid=true,showLabels=true;
+let activeBpTab='axial';
+let memberFirstNode=-1; // for draw member tool
+
+const canvas=document.getElementById('mainCanvas');
+const ctx=canvas.getContext('2d');
+
+// ======= COORD TRANSFORM =======
+function toC(wx,wy){return{x:origin.x+wx*scale,y:origin.y-wy*scale};}
+function toW(cx,cy){return{x:(cx-origin.x)/scale,y:-(cy-origin.y)/scale};}
+function snap(v){const g=parseFloat(document.getElementById('snapGrid').value)||0;return g>0?Math.round(v/g)*g:v;}
+
+// ======= RESIZE =======
+function resize(){
+  const r=canvas.parentElement.getBoundingClientRect();
+  const bpH=document.querySelector('.bottom-panel').offsetHeight;
+  const tb=document.querySelector('.ctoolbar').offsetHeight;
+  canvas.width=r.width;
+  canvas.height=r.height-bpH-tb;
+  drawAll();
+}
+window.addEventListener('resize',resize);
+setTimeout(resize,60);
+
+// ======= DRAW =======
+function drawAll(){
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0e1118';
+  ctx.fillRect(0,0,W,H);
+  if(showGrid)drawGrid(W,H);
+  drawAxes(W,H);
+  if(activeView==='optimized'&&results&&results.optimized){drawOptimized();return;}
+  drawMembers();
+  drawDistLoads();
+  drawNodes();
+  drawLoads();
+  if(results){drawReactions();drawDeformed();}
+  if(memberFirstNode>=0&&activeTool==='member'){
+    const p=toC(nodes[memberFirstNode].x,nodes[memberFirstNode].y);
+    ctx.strokeStyle='rgba(79,140,255,.5)';ctx.setLineDash([4,3]);ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  }
+  updateStatus();
+}
+
+function drawGrid(W,H){
+  const step=scale;
+  ctx.strokeStyle='rgba(30,35,54,0.8)';ctx.lineWidth=0.5;
+  const ox=((origin.x%step)+step)%step,oy=((origin.y%step)+step)%step;
+  for(let x=ox;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=oy;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+}
+function drawAxes(W,H){
+  ctx.strokeStyle='rgba(79,140,255,.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,origin.y);ctx.lineTo(W,origin.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(origin.x,0);ctx.lineTo(origin.x,H);ctx.stroke();
+  ctx.fillStyle='rgba(100,116,139,.5)';ctx.font='9px IBM Plex Mono';
+  ctx.fillText('X',W-12,origin.y-4);
+  if(origin.y>14)ctx.fillText('Y',origin.x+4,14);
+}
+
+function memberLen(m){
+  const ni=nodes[m.i],nj=nodes[m.j];
+  if(!ni||!nj)return 0;
+  const dx=nj.x-ni.x,dy=nj.y-ni.y;
+  return Math.sqrt(dx*dx+dy*dy);
+}
+
+function drawMembers(){
+  members.forEach((m,mi)=>{
+    const n1=nodes[m.i],n2=nodes[m.j];
+    if(!n1||!n2)return;
+    const p1=toC(n1.x,n1.y),p2=toC(n2.x,n2.y);
+    let color='#2a3360',lw=2.5;
+    if(mi===selMember){color='#a78bfa';lw=3.5;}
+    if(results&&results.forces){
+      const f=results.forces[mi];
+      if(Math.abs(f)<0.001){color='#2a3350';lw=1.5;}
+      else if(f>0){color='#34d399';lw=2.5+Math.min(Math.abs(f)/80,4);}
+      else{color='#f87171';lw=2.5+Math.min(Math.abs(f)/80,4);}
+    }
+    ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+    // Force label on member
+    if(results&&results.forces&&scale>40){
+      const f=results.forces[mi];
+      const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+      const ang=Math.atan2(p2.y-p1.y,p2.x-p1.x);
+      ctx.save();ctx.translate(mx,my);ctx.rotate(ang);
+      ctx.fillStyle=f>0.001?'#34d399':f<-0.001?'#f87171':'#4a5580';
+      ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+      ctx.fillText((f>0?'+':'')+f.toFixed(1)+'kN',0,-6);
+      ctx.restore();
+    }
+    if(mi===selMember){
+      const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+      ctx.fillStyle='#a78bfa';ctx.font='9px IBM Plex Mono';
+      ctx.textAlign='center';ctx.fillText('M'+(mi+1),mx,my+14);
+    }
+  });
+}
+
+function drawNodes(){
+  const ns=parseInt(document.getElementById('nodeSize').value)||7;
+  nodes.forEach((n,ni)=>{
+    const p=toC(n.x,n.y);
+    // Support symbols
+    if(n.support==='pin'){
+      ctx.fillStyle='rgba(79,140,255,.2)';ctx.strokeStyle='#4f8cff';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-12,p.y+18);ctx.lineTo(p.x+12,p.y+18);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p.x-16,p.y+19);ctx.lineTo(p.x+16,p.y+19);ctx.stroke();
+      for(let i=-3;i<=3;i+=2){ctx.beginPath();ctx.moveTo(p.x+i*4,p.y+19);ctx.lineTo(p.x+i*4-3,p.y+25);ctx.stroke();}
+    } else if(n.support==='roller_x'){
+      ctx.fillStyle='rgba(79,140,255,.15)';ctx.strokeStyle='#4f8cff';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-10,p.y+14);ctx.lineTo(p.x+10,p.y+14);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.beginPath();ctx.arc(p.x-6,p.y+18,4,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.arc(p.x+6,p.y+18,4,0,Math.PI*2);ctx.stroke();
+    } else if(n.support==='roller_y'){
+      ctx.fillStyle='rgba(79,140,255,.15)';ctx.strokeStyle='#4f8cff';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-16,p.y-9);ctx.lineTo(p.x-16,p.y+9);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.beginPath();ctx.arc(p.x-20,p.y-6,4,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.arc(p.x-20,p.y+6,4,0,Math.PI*2);ctx.stroke();
+    } else if(n.support==='fixed'){
+      ctx.fillStyle='#4f8cff55';ctx.strokeStyle='#4f8cff';ctx.lineWidth=1.5;
+      ctx.fillRect(p.x-8,p.y-12,7,24);ctx.strokeRect(p.x-8,p.y-12,7,24);
+      for(let i=-3;i<=3;i+=3){ctx.beginPath();ctx.moveTo(p.x-8,p.y+i*3.5);ctx.lineTo(p.x-16,p.y+i*3.5+6);ctx.stroke();}
+    }
+    // Node circle
+    const isSel=ni===selNode;
+    ctx.beginPath();ctx.arc(p.x,p.y,ns,0,Math.PI*2);
+    ctx.fillStyle=isSel?'rgba(167,139,250,.3)':results?'rgba(15,20,40,.9)':'rgba(26,31,52,.9)';
+    ctx.fill();
+    ctx.strokeStyle=isSel?'#a78bfa':n.support!=='none'?'#4f8cff':'#3a4a78';
+    ctx.lineWidth=isSel?2.5:2;ctx.stroke();
+    // Deformed dot
+    if(results&&results.disp){
+      const d=results.disp[ni];
+      if(d){const dp=toC(n.x+d.dx*50,n.y+d.dy*50);ctx.beginPath();ctx.arc(dp.x,dp.y,3,0,Math.PI*2);ctx.fillStyle='#4f8cff88';ctx.fill();}
+    }
+    // Label
+    if(scale>20){
+      ctx.fillStyle=isSel?'#a78bfa':'#5a70a8';ctx.font=`bold ${Math.min(11,ns+2)}px IBM Plex Mono`;
+      ctx.textAlign='center';ctx.fillText('N'+(ni+1),p.x,p.y-ns-3);
+    }
+  });
+}
+
+function drawLoads(){
+  loads.forEach(l=>{
+    if(l.type==='point'){
+      if(l.node<0||l.node>=nodes.length)return;
+      const p=toC(nodes[l.node].x,nodes[l.node].y);
+      if(l.fx!==0)drawArrow(p.x,p.y,l.fx>0?-36:36,0,'#fbbf24',l.fx.toFixed(0)+'kN');
+      if(l.fy!==0)drawArrow(p.x,p.y,0,l.fy>0?36:-36,'#fbbf24',l.fy.toFixed(0)+'kN');
+    }
+  });
+}
+
+function drawDistLoads(){
+  loads.forEach(l=>{
+    if(l.type!=='udl'&&l.type!=='vdl')return;
+    if(l.member<0||l.member>=members.length)return;
+    const m=members[l.member];
+    const n1=nodes[m.i],n2=nodes[m.j];
+    if(!n1||!n2)return;
+    const p1=toC(n1.x,n1.y),p2=toC(n2.x,n2.y);
+    const segs=8;
+    const col=l.type==='udl'?'#22d3ee':'#fb923c';
+    ctx.strokeStyle=col;ctx.lineWidth=1;
+    for(let k=0;k<=segs;k++){
+      const t=k/segs;
+      const cx=p1.x+(p2.x-p1.x)*t;
+      const cy=p1.y+(p2.y-p1.y)*t;
+      let w=l.w||l.w1;
+      if(l.type==='vdl')w=l.w1+(l.w2-l.w1)*t;
+      const arrowLen=Math.min(Math.abs(w)*1.5,30)*Math.sign(w);
+      const dir=l.dir||'y';
+      let ax=0,ay=0;
+      if(dir==='y'){ay=-arrowLen;}else{ax=arrowLen;}
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+ax,cy+ay);ctx.stroke();
+      // arrowhead
+      if(Math.abs(arrowLen)>3){
+        const ang=Math.atan2(ay,ax)+Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(cx,cy);
+        ctx.lineTo(cx+5*Math.cos(ang-0.4),cy+5*Math.sin(ang-0.4));
+        ctx.lineTo(cx+5*Math.cos(ang+0.4),cy+5*Math.sin(ang+0.4));
+        ctx.closePath();ctx.fillStyle=col;ctx.fill();
+      }
+    }
+    // Label
+    const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+    ctx.fillStyle=col;ctx.font='9px IBM Plex Mono';ctx.textAlign='center';
+    if(l.type==='udl')ctx.fillText('UDL '+l.w+'kN/m',mx,my-22);
+    else ctx.fillText('VDL '+l.w1+'→'+l.w2+'kN/m',mx,my-22);
+  });
+}
+
+function drawArrow(x,y,dx,dy,color,label){
+  const ang=Math.atan2(dy,dx);const hLen=8;
+  ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+dx,y+dy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,y);
+  ctx.lineTo(x+hLen*Math.cos(ang+0.4+Math.PI),y+hLen*Math.sin(ang+0.4+Math.PI));
+  ctx.lineTo(x+hLen*Math.cos(ang-0.4+Math.PI),y+hLen*Math.sin(ang-0.4+Math.PI));
+  ctx.closePath();ctx.fill();
+  if(label){ctx.font='9px IBM Plex Mono';ctx.textAlign='center';ctx.fillText(label,x+dx*1.4,y+dy*1.4+3);}
+}
+
+function drawReactions(){
+  if(!results||!results.reactions)return;
+  results.reactions.forEach(r=>{
+    const p=toC(nodes[r.node].x,nodes[r.node].y);
+    if(Math.abs(r.rx)>0.01)drawArrow(p.x,p.y,r.rx>0?-38:38,0,'#c084fc',r.rx.toFixed(1)+'kN');
+    if(Math.abs(r.ry)>0.01)drawArrow(p.x,p.y,0,r.ry>0?38:-38,'#c084fc',r.ry.toFixed(1)+'kN');
+  });
+}
+
+function drawDeformed(){
+  if(!results||!results.disp||activeView!=='deformed')return;
+  const amp=50;
+  ctx.strokeStyle='rgba(79,140,255,.4)';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+  members.forEach(m=>{
+    const n1=nodes[m.i],n2=nodes[m.j];
+    if(!n1||!n2)return;
+    const d1=results.disp[m.i]||{dx:0,dy:0};
+    const d2=results.disp[m.j]||{dx:0,dy:0};
+    const p1=toC(n1.x+d1.dx*amp,n1.y+d1.dy*amp);
+    const p2=toC(n2.x+d2.dx*amp,n2.y+d2.dy*amp);
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+  });
+  ctx.setLineDash([]);
+}
+
+function drawOptimized(){
+  if(!results||!results.optimized)return;
+  const opt=results.optimized;
+  // Draw original faint
+  members.forEach((m,mi)=>{
+    const n1=nodes[m.i],n2=nodes[m.j];if(!n1||!n2)return;
+    const p1=toC(n1.x,n1.y),p2=toC(n2.x,n2.y);
+    ctx.strokeStyle='rgba(42,51,96,.5)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();ctx.setLineDash([]);
+  });
+  // Draw optimized members
+  opt.members.forEach((m,mi)=>{
+    const n1=opt.nodes[m.i],n2=opt.nodes[m.j];if(!n1||!n2)return;
+    const p1=toC(n1.x,n1.y),p2=toC(n2.x,n2.y);
+    ctx.strokeStyle='#34d399';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+  });
+  opt.nodes.forEach((n,ni)=>{
+    const p=toC(n.x,n.y);
+    ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);
+    ctx.fillStyle='#0e1118';ctx.fill();
+    ctx.strokeStyle=n.support!=='none'?'#4f8cff':'#34d399';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#34d399';ctx.font='10px IBM Plex Mono';ctx.textAlign='center';
+    ctx.fillText('O'+(ni+1),p.x,p.y-12);
+  });
+  // Legend
+  ctx.fillStyle='rgba(14,17,24,.85)';ctx.fillRect(12,12,220,54);ctx.strokeStyle=opt.members.length<members.length?'#34d399':'#fbbf24';ctx.strokeRect(12,12,220,54);
+  ctx.fillStyle='#e2e8f0';ctx.font='11px IBM Plex Mono';
+  ctx.fillText('OPTIMIZED TRUSS SUGGESTION',20,29);
+  ctx.fillStyle='#34d399';ctx.fillText(`Members: ${members.length} → ${opt.members.length}   Nodes: ${nodes.length} → ${opt.nodes.length}`,20,46);
+  ctx.fillStyle='#94a3b8';ctx.fillText(opt.note||'',20,60);
+}
+
+// ======= CANVAS EVENTS =======
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('mousedown',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const cx=e.clientX-rect.left,cy=e.clientY-rect.top;
+  const wpos=toW(cx,cy);
+  if(e.button===1||(e.button===0&&e.altKey)){isPanning=true;panStart={x:e.clientX-origin.x,y:e.clientY-origin.y};canvas.style.cursor='grabbing';return;}
+  if(e.button===2){isPanning=true;panStart={x:e.clientX-origin.x,y:e.clientY-origin.y};canvas.style.cursor='grabbing';return;}
+  handleCanvasClick(cx,cy,wpos,e);
+});
+canvas.addEventListener('mousemove',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const cx=e.clientX-rect.left,cy=e.clientY-rect.top;
+  const wpos=toW(cx,cy);
+  document.getElementById('mouseCoords').textContent=`x:${snap(wpos.x).toFixed(2)}m  y:${snap(wpos.y).toFixed(2)}m`;
+  if(isPanning){origin.x=e.clientX-panStart.x;origin.y=e.clientY-panStart.y;drawAll();return;}
+  if(isDraggingNode&&dragNodeIdx>=0){
+    nodes[dragNodeIdx].x=snap(wpos.x);nodes[dragNodeIdx].y=snap(wpos.y);
+    refreshLists();drawAll();return;
+  }
+  // Hover cursor
+  if(activeTool==='select'||activeTool==='move'){
+    const ni=nearestNode(cx,cy);
+    canvas.style.cursor=ni>=0?'pointer':'default';
+  }
+});
+canvas.addEventListener('mouseup',e=>{
+  isPanning=false;isDraggingNode=false;dragNodeIdx=-1;
+  canvas.style.cursor=activeTool==='node'?'crosshair':'default';
+});
+canvas.addEventListener('mouseleave',()=>{isPanning=false;isDraggingNode=false;});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const wb=toW(mx,my);
+  scale*=e.deltaY<0?1.12:0.89;scale=Math.max(8,Math.min(400,scale));
+  const wa=toW(mx,my);
+  origin.x+=(wa.x-wb.x)*scale;origin.y-=(wa.y-wb.y)*scale;
+  drawAll();
+},{passive:false});
+
+function nearestNode(cx,cy,threshold=14){
+  let best=-1,bestD=Infinity;
+  nodes.forEach((n,ni)=>{const p=toC(n.x,n.y);const d=Math.hypot(p.x-cx,p.y-cy);if(d<threshold&&d<bestD){bestD=d;best=ni;}});
+  return best;
+}
+function nearestMember(cx,cy,threshold=8){
+  let best=-1,bestD=Infinity;
+  members.forEach((m,mi)=>{
+    const n1=nodes[m.i],n2=nodes[m.j];if(!n1||!n2)return;
+    const p1=toC(n1.x,n1.y),p2=toC(n2.x,n2.y);
+    const d=pointLineSegDist(cx,cy,p1.x,p1.y,p2.x,p2.y);
+    if(d<threshold&&d<bestD){bestD=d;best=mi;}
+  });
+  return best;
+}
+function pointLineSegDist(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay;const l2=dx*dx+dy*dy;
+  if(l2===0)return Math.hypot(px-ax,py-ay);
+  const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/l2));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+
+function handleCanvasClick(cx,cy,wpos,e){
+  closePopup();
+  const ni=nearestNode(cx,cy);
+  const mi=nearestMember(cx,cy);
+  switch(activeTool){
+    case 'select':
+      if(ni>=0){selNode=ni;selMember=-1;openNodePopup(ni,e.clientX,e.clientY);}
+      else if(mi>=0){selMember=mi;selNode=-1;openMemberPopup(mi,e.clientX,e.clientY);}
+      else{selNode=-1;selMember=-1;}
+      drawAll();break;
+    case 'node':
+      const sx=snap(wpos.x),sy=snap(wpos.y);
+      nodes.push({x:sx,y:sy,support:'none'});
+      results=null;refreshLists();drawAll();break;
+    case 'member':
+      if(ni>=0){
+        if(memberFirstNode<0){memberFirstNode=ni;selNode=ni;}
+        else if(ni!==memberFirstNode){
+          // check duplicate
+          const dup=members.some(m=>(m.i===memberFirstNode&&m.j===ni)||(m.i===ni&&m.j===memberFirstNode));
+          if(!dup){
+            const E=parseFloat(document.getElementById('defE').value)||200;
+            const A=parseFloat(document.getElementById('defA').value)||10;
+            members.push({i:memberFirstNode,j:ni,E,A});
+            results=null;
+          }
+          memberFirstNode=-1;selNode=-1;
+        }
+      } else{memberFirstNode=-1;}
+      refreshLists();drawAll();break;
+    case 'delete':
+      if(ni>=0){deleteNode(ni);}
+      else if(mi>=0){deleteMember(mi);}
+      break;
+    case 'move':
+      if(ni>=0){isDraggingNode=true;dragNodeIdx=ni;selNode=ni;}
+      break;
+    case 'support':
+      if(ni>=0){
+        nodes[ni].support=document.getElementById('supportType').value;
+        results=null;refreshLists();drawAll();
+      }
+      break;
+  }
+}
+
+// ======= TOOL & VIEW =======
+const toolBtns=['select','node','member','delete','move','support'];
+function setTool(t){
+  activeTool=t;memberFirstNode=-1;selNode=-1;selMember=-1;
+  toolBtns.forEach(tb=>{
+    const el=document.getElementById('tool-'+tb);
+    if(el)el.className='tbtn'+(tb==='delete'?' danger':'')+(t===tb?' on':'');
+  });
+  document.getElementById('toolLabel').textContent='Mode: '+t.toUpperCase();
+  canvas.style.cursor=t==='node'?'crosshair':t==='delete'?'not-allowed':'default';
+  drawAll();
+}
+function setView(v){
+  activeView=v;
+  ['truss','deformed','optimized'].forEach(vv=>{
+    const el=document.getElementById('vbtn-'+vv);
+    if(el)el.className='tbtn'+(v===vv?' on':'');
+  });
+  drawAll();
+}
+
+// ======= POPUPS =======
+function openNodePopup(ni,cx,cy){
+  popupNodeIdx=ni;
+  const n=nodes[ni];
+  document.getElementById('ppTitle').textContent='Node N'+(ni+1);
+  document.getElementById('ppX').value=n.x;
+  document.getElementById('ppY').value=n.y;
+  document.getElementById('ppSupport').value=n.support;
+  showPopup('nodePopup',cx,cy);
+}
+function saveNodePopup(){
+  if(popupNodeIdx<0)return;
+  nodes[popupNodeIdx].x=parseFloat(document.getElementById('ppX').value)||0;
+  nodes[popupNodeIdx].y=parseFloat(document.getElementById('ppY').value)||0;
+  nodes[popupNodeIdx].support=document.getElementById('ppSupport').value;
+  results=null;refreshLists();drawAll();closePopup();
+}
+function deleteNodePopup(){if(popupNodeIdx>=0){deleteNode(popupNodeIdx);closePopup();}}
+
+function openMemberPopup(mi,cx,cy){
+  popupMemberIdx=mi;
+  const m=members[mi];
+  document.getElementById('mpTitle').textContent='Member M'+(mi+1)+' (N'+(m.i+1)+'→N'+(m.j+1)+')';
+  document.getElementById('mpE').value=m.E;
+  document.getElementById('mpA').value=m.A;
+  const L=memberLen(m).toFixed(3);
+  document.getElementById('mpInfo').textContent='L='+L+'m  EA/L='+(m.E*1e6*m.A*1e-4/parseFloat(L)).toFixed(0)+'kN/m';
+  showPopup('memberPopup',cx,cy);
+}
+function saveMemberPopup(){
+  if(popupMemberIdx<0)return;
+  members[popupMemberIdx].E=parseFloat(document.getElementById('mpE').value)||200;
+  members[popupMemberIdx].A=parseFloat(document.getElementById('mpA').value)||10;
+  results=null;refreshLists();drawAll();closePopup();
+}
+function deleteMemberPopup(){if(popupMemberIdx>=0){deleteMember(popupMemberIdx);closePopup();}}
+
+function showPopup(id,cx,cy){
+  const el=document.getElementById(id);
+  el.style.left=Math.min(cx+5,window.innerWidth-220)+'px';
+  el.style.top=Math.min(cy+5,window.innerHeight-300)+'px';
+  el.classList.add('show');
+}
+function closePopup(){
+  document.getElementById('nodePopup').classList.remove('show');
+  document.getElementById('memberPopup').classList.remove('show');
+  popupNodeIdx=-1;popupMemberIdx=-1;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup();});
+
+// ======= DATA MANAGEMENT =======
+function addNodeManual(){
+  const x=parseFloat(document.getElementById('nx').value)||0;
+  const y=parseFloat(document.getElementById('ny').value)||0;
+  const support=document.getElementById('nsup').value;
+  nodes.push({x,y,support});results=null;refreshLists();drawAll();fitView();
+}
+function addMemberManual(){
+  const i=parseInt(document.getElementById('mfrom').value)-1;
+  const j=parseInt(document.getElementById('mto').value)-1;
+  if(i<0||j<0||i>=nodes.length||j>=nodes.length||i===j){alert('Invalid node numbers.');return;}
+  if(members.some(m=>(m.i===i&&m.j===j)||(m.i===j&&m.j===i))){alert('Member already exists.');return;}
+  const E=parseFloat(document.getElementById('defE').value)||200;
+  const A=parseFloat(document.getElementById('defA').value)||10;
+  members.push({i,j,E,A});results=null;refreshLists();drawAll();
+}
+function deleteNode(ni){
+  nodes.splice(ni,1);
+  members=members.filter(m=>m.i!==ni&&m.j!==ni).map(m=>({...m,i:m.i>ni?m.i-1:m.i,j:m.j>ni?m.j-1:m.j}));
+  loads=loads.filter(l=>l.type!=='point'||l.node!==ni).map(l=>l.type==='point'&&l.node>ni?{...l,node:l.node-1}:l);
+  results=null;selNode=-1;refreshLists();drawAll();
+}
+function deleteMember(mi){
+  members.splice(mi,1);
+  loads=loads.filter(l=>l.type==='point'||l.member!==mi).map(l=>l.type!=='point'&&l.member>mi?{...l,member:l.member-1}:l);
+  results=null;selMember=-1;refreshLists();drawAll();
+}
+
+// ======= LOADS =======
+function addPointLoad(){
+  const node=parseInt(document.getElementById('lnode').value)-1;
+  const fx=parseFloat(document.getElementById('lfx').value)||0;
+  const fy=parseFloat(document.getElementById('lfy').value)||0;
+  if(node<0||node>=nodes.length){alert('Invalid node.');return;}
+  const ex=loads.findIndex(l=>l.type==='point'&&l.node===node);
+  if(ex>=0){loads[ex].fx+=fx;loads[ex].fy+=fy;}
+  else loads.push({type:'point',node,fx,fy});
+  results=null;refreshLists();drawAll();
+}
+function addUDL(){
+  const member=parseInt(document.getElementById('udlMember').value)-1;
+  const w=parseFloat(document.getElementById('udlW').value)||0;
+  const dir=document.getElementById('udlDir').value;
+  if(member<0||member>=members.length){alert('Invalid member.');return;}
+  loads.push({type:'udl',member,w,dir});results=null;refreshLists();drawAll();
+}
+function addVDL(){
+  const member=parseInt(document.getElementById('vdlMember').value)-1;
+  const w1=parseFloat(document.getElementById('vdlW1').value)||0;
+  const w2=parseFloat(document.getElementById('vdlW2').value)||0;
+  const dir=document.getElementById('vdlDir').value;
+  if(member<0||member>=members.length){alert('Invalid member.');return;}
+  loads.push({type:'vdl',member,w1,w2,dir});results=null;refreshLists();drawAll();
+}
+function deleteLoad(i){loads.splice(i,1);results=null;refreshLists();drawAll();}
+
+// ======= REFRESH LISTS =======
+function refreshLists(){
+  // Nodes
+  const nl=document.getElementById('nodesList');
+  if(nodes.length===0){nl.innerHTML='<div class="empty-hint">No nodes yet.</div>';return;}
+  nl.innerHTML='<table class="dtable"><thead><tr><th>#</th><th>X</th><th>Y</th><th>Sup</th><th></th></tr></thead><tbody>'+
+    nodes.map((n,i)=>`<tr><td>N${i+1}</td><td>${n.x.toFixed(1)}</td><td>${n.y.toFixed(1)}</td><td style="font-size:9px">${n.support}</td><td><button class="btn-r" onclick="deleteNode(${i})">×</button></td></tr>`).join('')+
+    '</tbody></table>';
+  // Members
+  const ml=document.getElementById('membersList');
+  if(members.length===0){ml.innerHTML='<div class="empty-hint">No members yet.</div>';return;}
+  ml.innerHTML='<table class="dtable"><thead><tr><th>#</th><th>i→j</th><th>L</th><th></th></tr></thead><tbody>'+
+    members.map((m,i)=>`<tr><td>M${i+1}</td><td>N${m.i+1}→N${m.j+1}</td><td>${memberLen(m).toFixed(2)}</td><td><button class="btn-r" onclick="deleteMember(${i})">×</button></td></tr>`).join('')+
+    '</tbody></table>';
+  // Loads
+  const ll=document.getElementById('loadsList');
+  if(loads.length===0){ll.innerHTML='<div class="empty-hint">No loads applied.</div>';return;}
+  ll.innerHTML=loads.map((l,i)=>{
+    let desc='';
+    if(l.type==='point')desc=`N${l.node+1}: Fx=${l.fx}kN Fy=${l.fy}kN`;
+    else if(l.type==='udl')desc=`M${l.member+1} UDL w=${l.w}kN/m (${l.dir})`;
+    else desc=`M${l.member+1} VDL ${l.w1}→${l.w2}kN/m (${l.dir})`;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);font-size:10px;font-family:'IBM Plex Mono',monospace;gap:4px;">
+      <span style="color:var(--muted2)">${desc}</span><button class="btn-r" onclick="deleteLoad(${i})">×</button></div>`;
+  }).join('');
+  // Props tab
+  const ap=document.getElementById('allMemberProps');
+  ap.innerHTML='<table class="dtable"><thead><tr><th>#</th><th>i→j</th><th>E(GPa)</th><th>A(cm²)</th></tr></thead><tbody>'+
+    members.map((m,i)=>`<tr><td>M${i+1}</td><td>N${m.i+1}→N${m.j+1}</td><td>${m.E}</td><td>${m.A}</td></tr>`).join('')+
+    '</tbody></table>';
+  // Status
+  updateStatus();
+}
+
+function applyPropsAll(){
+  const E=parseFloat(document.getElementById('defE').value)||200;
+  const A=parseFloat(document.getElementById('defA').value)||10;
+  members.forEach(m=>{m.E=E;m.A=A;});results=null;refreshLists();
+}
+
+function updateStatus(){
+  document.getElementById('sNodes').textContent=nodes.length;
+  document.getElementById('sMembers').textContent=members.length;
+  document.getElementById('sLoads').textContent=loads.length;
+  const reactions=nodes.reduce((s,n)=>{
+    if(n.support==='pin')return s+2;if(n.support==='fixed')return s+3;
+    if(n.support==='roller_x'||n.support==='roller_y')return s+1;return s;},0);
+  const det=members.length+reactions-2*nodes.length;
+  const detStr=det===0?'Det (0)':det>0?`Indet (+${det})`:`Mech (${det})`;
+  const detEl=document.getElementById('sDet');
+  detEl.textContent=detStr;
+  detEl.style.color=det===0?'var(--green)':det>0?'var(--yellow)':'var(--red)';
+}
+
+// ======= ANALYSIS =======
+function analyzeClick(){
+  sTab('loads');
+  try{
+    // Convert distributed loads to equivalent nodal loads
+    const eqLoads=convertDistLoads();
+    results=analyze(eqLoads);
+    results.optimized=computeOptimized();
+    showResults();
+    drawDiagrams();
+    drawAll();
+    document.getElementById('sMsg').textContent='✓ Analysis complete';
+  }catch(e){
+    showError(e.message);
+    document.getElementById('sMsg').textContent='✗ '+e.message.slice(0,40);
+  }
+}
+
+function convertDistLoads(){
+  // Combine point loads + equivalent nodal forces from dist loads
+  const eq=[];
+  // Copy point loads
+  loads.filter(l=>l.type==='point').forEach(l=>eq.push({node:l.node,fx:l.fx,fy:l.fy}));
+  // Distribute UDL/VDL to end nodes (fixed-end force approach simplified)
+  loads.filter(l=>l.type==='udl'||l.type==='vdl').forEach(l=>{
+    const m=members[l.member];if(!m)return;
+    const L=memberLen(m);
+    let R1,R2;
+    if(l.type==='udl'){
+      const w=l.w;R1=w*L/2;R2=w*L/2;
+    } else {
+      const w1=l.w1,w2=l.w2;
+      R1=(2*w1+w2)*L/6;R2=(w1+2*w2)*L/6;
+    }
+    const dir=l.dir||'y';
+    const addEq=(node,fx,fy)=>{const ex=eq.findIndex(e=>e.node===node);if(ex>=0){eq[ex].fx+=fx;eq[ex].fy+=fy;}else eq.push({node,fx,fy});};
+    if(dir==='y'){addEq(m.i,0,R1);addEq(m.j,0,R2);}
+    else{addEq(m.i,R1,0);addEq(m.j,R2,0);}
+  });
+  return eq;
+}
+
+function analyze(eqLoads){
+  const n=nodes.length,m=members.length;
+  if(n<2)throw new Error('Need at least 2 nodes.');
+  if(m<1)throw new Error('Need at least 1 member.');
+  const dof=2*n;
+  const K=Array.from({length:dof},()=>new Array(dof).fill(0));
+  const mProps=members.map((mem,mi)=>{
+    const ni=nodes[mem.i],nj=nodes[mem.j];
+    const dx=nj.x-ni.x,dy=nj.y-ni.y;
+    const L=Math.sqrt(dx*dx+dy*dy);
+    if(L<1e-10)throw new Error(`M${mi+1} has zero length.`);
+    const c=dx/L,s=dy/L;
+    const EAL=(mem.E*1e6*mem.A*1e-4)/L;
+    return{c,s,L,EAL,i:mem.i,j:mem.j};
+  });
+  mProps.forEach(mp=>{
+    const{c,s,EAL,i,j}=mp;
+    const dofs=[2*i,2*i+1,2*j,2*j+1];
+    const ke=[[c*c,c*s,-c*c,-c*s],[c*s,s*s,-c*s,-s*s],[-c*c,-c*s,c*c,c*s],[-c*s,-s*s,c*s,s*s]];
+    for(let a=0;a<4;a++)for(let b=0;b<4;b++)K[dofs[a]][dofs[b]]+=EAL*ke[a][b];
+  });
+  const F=new Array(dof).fill(0);
+  eqLoads.forEach(l=>{F[2*l.node]+=l.fx;F[2*l.node+1]+=l.fy;});
+  const constrained=[];
+  nodes.forEach((nd,i)=>{
+    if(nd.support==='pin'||nd.support==='fixed'){constrained.push(2*i,2*i+1);}
+    else if(nd.support==='roller_x'){constrained.push(2*i+1);}
+    else if(nd.support==='roller_y'){constrained.push(2*i);}
+  });
+  const freeDofs=[];
+  for(let d=0;d<dof;d++)if(!constrained.includes(d))freeDofs.push(d);
+  if(freeDofs.length===0)throw new Error('All DOFs constrained.');
+  const Kff=freeDofs.map(r=>freeDofs.map(c=>K[r][c]));
+  const Ff=freeDofs.map(r=>F[r]);
+  const Uf=gaussElim(Kff,Ff);
+  if(Uf===null)throw new Error('Singular stiffness matrix. Check stability and supports.');
+  const U=new Array(dof).fill(0);
+  freeDofs.forEach((d,i)=>U[d]=Uf[i]);
+  // Member forces
+  const forces=mProps.map(mp=>{
+    const{c,s,EAL,i,j}=mp;
+    return EAL*(c*(U[2*j]-U[2*i])+s*(U[2*j+1]-U[2*i+1]));
+  });
+  // Nodal displacements
+  const disp=nodes.map((_,i)=>({dx:U[2*i],dy:U[2*i+1]}));
+  // Reactions
+  const reactions=[];
+  nodes.forEach((nd,i)=>{
+    if(nd.support==='none')return;
+    let kux=0,kuy=0;
+    for(let d=0;d<dof;d++){kux+=K[2*i][d]*U[d];kuy+=K[2*i+1][d]*U[d];}
+    const rx=kux-F[2*i],ry=kuy-F[2*i+1];
+    reactions.push({node:i,rx:nd.support==='roller_x'?0:rx,ry:nd.support==='roller_y'?0:ry});
+  });
+  // Shear & bending for each member (treat each as beam element for visualization)
+  const memberDiagrams=mProps.map((mp,mi)=>{
+    const mem=members[mi];
+    const f=forces[mi];
+    const L=mp.L;
+    // Find distributed load on this member
+    const dl=loads.find(l=>(l.type==='udl'||l.type==='vdl')&&l.member===mi);
+    const segments=20;
+    const pts=[];
+    for(let s=0;s<=segments;s++){
+      const t=s/segments,x=t*L;
+      let w=0;
+      if(dl){if(dl.type==='udl')w=dl.w;else w=dl.w1+(dl.w2-dl.w1)*t;}
+      const V=w*(L/2-x); // simple beam approx
+      const M=w*(L*x/2-x*x/2);
+      pts.push({x,axial:f,V,M});
+    }
+    return{pts,L};
+  });
+  const reactions2=reactions.reduce((s,r)=>s+Math.abs(r.rx)+Math.abs(r.ry),0);
+  const totalLoad=eqLoads.reduce((s,l)=>s+Math.abs(l.fx)+Math.abs(l.fy),0);
+  return{forces,disp,reactions,memberDiagrams,mProps,eqLoads,totalLoad};
+}
+
+function gaussElim(A,b){
+  const n=b.length;
+  const M=A.map((r,i)=>[...r,b[i]]);
+  for(let col=0;col<n;col++){
+    let maxRow=col;
+    for(let row=col+1;row<n;row++)if(Math.abs(M[row][col])>Math.abs(M[maxRow][col]))maxRow=row;
+    [M[col],M[maxRow]]=[M[maxRow],M[col]];
+    if(Math.abs(M[col][col])<1e-12)return null;
+    for(let row=col+1;row<n;row++){
+      const f=M[row][col]/M[col][col];
+      for(let k=col;k<=n;k++)M[row][k]-=f*M[col][k];
+    }
+  }
+  const x=new Array(n).fill(0);
+  for(let i=n-1;i>=0;i--){
+    x[i]=M[i][n];
+    for(let j=i+1;j<n;j++)x[i]-=M[i][j]*x[j];
+    x[i]/=M[i][i];
+  }
+  return x;
+}
+
+// ======= OPTIMIZED TRUSS =======
+function computeOptimized(){
+  if(!results)return null;
+  // Find zero-force members and suggest removal
+  const zeroForceMembers=members.map((m,i)=>Math.abs(results.forces[i])<0.001*Math.max(...results.forces.map(Math.abs),1)?i:-1).filter(i=>i>=0);
+  // Find nodes only connected by 2 collinear members with no load → can merge
+  const opt={nodes:[...nodes.map(n=>({...n}))],members:[...members.filter((_,i)=>!zeroForceMembers.includes(i)).map(m=>({...m}))],note:''};
+  let removed=zeroForceMembers.length;
+  // Remove isolated nodes (not connected to any opt member)
+  const usedNodes=new Set();
+  opt.members.forEach(m=>{usedNodes.add(m.i);usedNodes.add(m.j);});
+  // Remap
+  const nodeMap={};let ni2=0;
+  opt.nodes.forEach((_,oi)=>{if(usedNodes.has(oi)){nodeMap[oi]=ni2++;}});
+  opt.nodes=opt.nodes.filter((_,oi)=>usedNodes.has(oi));
+  opt.members=opt.members.map(m=>({...m,i:nodeMap[m.i],j:nodeMap[m.j]}));
+  opt.note=removed>0?`Removed ${removed} zero-force member(s)`:'No zero-force members found.';
+  return opt;
+}
+
+// ======= RESULTS DISPLAY =======
+function showResults(){
+  if(!results)return;
+  const r=results;
+  const maxD=Math.max(...r.disp.map(d=>Math.sqrt(d.dx**2+d.dy**2)))*1000;
+  const maxT=Math.max(...r.forces.filter(f=>f>0),0);
+  const maxC=Math.min(...r.forces.filter(f=>f<0),0);
+  const nReact=nodes.reduce((s,nd)=>{if(nd.support==='pin')return s+2;if(nd.support==='fixed')return s+3;if(nd.support==='roller_x'||nd.support==='roller_y')return s+1;return s;},0);
+  const det=members.length+nReact-2*nodes.length;
+  const detLabel=det===0?'Statically Determinate':det>0?`Indeterminate (${det}°)`:`Mechanism (${det}°)`;
+  const detClass=det===0?'badge-d':det>0?'badge-i':'badge-c';
+
+  document.getElementById('rpBody').innerHTML=`
+  <div class="card">
+    <div class="card-title">Structure</div>
+    <div class="srow"><span class="sl">Nodes</span><span class="sv">${nodes.length}</span></div>
+    <div class="srow"><span class="sl">Members</span><span class="sv">${members.length}</span></div>
+    <div class="srow"><span class="sl">Reactions</span><span class="sv">${nReact}</span></div>
+    <div class="srow"><span class="sl">m+r−2n</span><span class="sv">${det>0?'+':''}${det}</span></div>
+    <div style="margin-top:5px"><span class="badge ${detClass}">${detLabel}</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Summary</div>
+    <div class="srow"><span class="sl">Max Disp.</span><span class="sv">${maxD.toFixed(3)} mm</span></div>
+    <div class="srow"><span class="sl">Max Tension</span><span class="sv t">+${maxT.toFixed(2)} kN</span></div>
+    <div class="srow"><span class="sl">Max Comp.</span><span class="sv c">${maxC.toFixed(2)} kN</span></div>
+    <div class="srow"><span class="sl">Total Load</span><span class="sv">${r.totalLoad.toFixed(1)} kN</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Member Forces</div>
+    <table class="dtable">
+      <thead><tr><th>Mbr</th><th>Force(kN)</th><th>Type</th><th>σ(MPa)</th></tr></thead>
+      <tbody>
+      ${r.forces.map((f,i)=>{
+        const cls=Math.abs(f)<0.001?'z':f>0?'t':'c';
+        const type=Math.abs(f)<0.001?'Zero':f>0?'T':'C';
+        const m=members[i];
+        const stress=f/(m.A*1e-4)/1000;// MPa
+        return`<tr><td>M${i+1}</td><td class="${cls}">${f>0?'+':''}${f.toFixed(2)}</td><td><span class="badge badge-${cls==='t'?'t':'c'==='c'?'c':'z'}">${type}</span></td><td class="${cls}">${stress.toFixed(1)}</td></tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">Nodal Displacements</div>
+    <table class="dtable">
+      <thead><tr><th>Node</th><th>Δx(mm)</th><th>Δy(mm)</th></tr></thead>
+      <tbody>${r.disp.map((d,i)=>`<tr><td>N${i+1}</td><td>${(d.dx*1000).toFixed(4)}</td><td>${(d.dy*1000).toFixed(4)}</td></tr>`).join('')}</tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">Support Reactions</div>
+    <table class="dtable">
+      <thead><tr><th>Node</th><th>Rx(kN)</th><th>Ry(kN)</th></tr></thead>
+      <tbody>${r.reactions.map(rx=>`<tr><td>N${rx.node+1}</td><td>${Math.abs(rx.rx)<0.001?'0':rx.rx.toFixed(3)}</td><td>${Math.abs(rx.ry)<0.001?'0':rx.ry.toFixed(3)}</td></tr>`).join('')}</tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">Legend</div>
+    <div class="legend">
+      <div class="litem"><div class="ldot" style="background:#34d399"></div><span>Tension</span></div>
+      <div class="litem"><div class="ldot" style="background:#f87171"></div><span>Compression</span></div>
+      <div class="litem"><div class="ldot" style="background:#4f8cff"></div><span>Deformed ×50</span></div>
+      <div class="litem"><div class="ldot" style="background:#c084fc"></div><span>Reactions</span></div>
+      <div class="litem"><div class="ldot" style="background:#fbbf24"></div><span>Loads</span></div>
+    </div>
+  </div>`;
+}
+
+function showError(msg){
+  document.getElementById('rpBody').innerHTML=`<div class="alert alert-e"><b>Analysis Error:</b><br>${msg}</div>`;
+}
+
+// ======= DIAGRAM DRAWING =======
+function drawDiagrams(){
+  if(!results)return;
+  drawAxialDiagram();
+  drawShearDiagram();
+  drawBendingDiagram();
+  drawSummaryTable();
+}
+
+function setupDiagCanvas(canvasId){
+  const c=document.getElementById(canvasId);
+  const par=c.parentElement;
+  c.width=par.clientWidth||800;c.height=par.clientHeight||190;
+  const ct=c.getContext('2d');
+  ct.fillStyle='#0c0e14';ct.fillRect(0,0,c.width,c.height);
+  return{c,ct,W:c.width,H:c.height};
+}
+
+function drawAxialDiagram(){
+  const{c,ct,W,H}=setupDiagCanvas('axialCanvas');
+  if(!results){return;}
+  const forces=results.forces;
+  const barW=Math.max(10,Math.min(40,(W-80)/Math.max(forces.length,1)-4));
+  const maxF=Math.max(...forces.map(Math.abs),1);
+  const midY=H/2;const scl=(H/2-30)/maxF;
+  ct.fillStyle='#1e2336';ct.fillRect(0,0,W,H);
+  // Grid lines
+  ct.strokeStyle='rgba(30,35,54,.8)';ct.lineWidth=0.5;
+  for(let i=1;i<=4;i++){const y=midY-i*(H/2-30)/4;ct.beginPath();ct.moveTo(40,y);ct.lineTo(W-10,y);ct.stroke();const y2=midY+i*(H/2-30)/4;ct.beginPath();ct.moveTo(40,y2);ct.lineTo(W-10,y2);ct.stroke();}
+  // Zero line
+  ct.strokeStyle='#2a3360';ct.lineWidth=1.5;ct.beginPath();ct.moveTo(40,midY);ct.lineTo(W-10,midY);ct.stroke();
+  ct.fillStyle='#64748b';ct.font='9px IBM Plex Mono';ct.textAlign='right';ct.fillText('0',38,midY+3);
+  ct.fillStyle='#e2e8f0';ct.font='bold 10px IBM Plex Mono';ct.textAlign='center';ct.fillText('AXIAL FORCE DIAGRAM (kN)',W/2,12);
+  forces.forEach((f,i)=>{
+    const x=50+i*(barW+4);if(x+barW>W-10)return;
+    const h=Math.abs(f)*scl;
+    const color=f>0.001?'#34d399':f<-0.001?'#f87171':'#3a4a78';
+    ct.fillStyle=color+'aa';ct.strokeStyle=color;ct.lineWidth=1.5;
+    if(f>=0){ct.fillRect(x,midY-h,barW,h);ct.strokeRect(x,midY-h,barW,h);}
+    else{ct.fillRect(x,midY,barW,h);ct.strokeRect(x,midY,barW,h);}
+    ct.fillStyle=color;ct.font='8px IBM Plex Mono';ct.textAlign='center';
+    if(Math.abs(f)>0.001){ct.fillText(f.toFixed(1),(x+barW/2),f>=0?midY-h-3:midY+h+10);}
+    ct.fillStyle='#64748b';ct.fillText('M'+(i+1),x+barW/2,H-5);
+  });
+  ct.fillStyle='#34d399aa';ct.font='9px IBM Plex Mono';ct.textAlign='left';ct.fillText('▲ Tension',44,H-16);
+  ct.fillStyle='#f87171aa';ct.fillText('▼ Compression',44+80,H-16);
+}
+
+function drawShearDiagram(){
+  const{c,ct,W,H}=setupDiagCanvas('shearCanvas');
+  ct.fillStyle='#0e1118';ct.fillRect(0,0,W,H);
+  ct.fillStyle='#e2e8f0';ct.font='bold 10px IBM Plex Mono';ct.textAlign='center';ct.fillText('SHEAR FORCE DIAGRAM — per member (kN)',W/2,14);
+  if(!results||!results.memberDiagrams){
+    ct.fillStyle='#64748b';ct.font='10px IBM Plex Mono';ct.fillText('Run analysis first or add distributed loads for shear values.',W/2,H/2);return;
+  }
+  const diagrams=results.memberDiagrams;
+  const allV=diagrams.flatMap(d=>d.pts.map(p=>p.V));
+  const maxV=Math.max(...allV.map(Math.abs),0.001);
+  const midY=H/2;const scl=(H/2-30)/maxV;
+  const totalL=diagrams.reduce((s,d)=>s+d.L,0);
+  let xOff=50;
+  diagrams.forEach((diag,mi)=>{
+    const segW=Math.max(30,(W-60)*(diag.L/totalL));
+    ct.strokeStyle='#22d3ee';ct.lineWidth=2;ct.beginPath();
+    diag.pts.forEach((p,pi)=>{
+      const px=xOff+pi*(segW/diag.pts.length);
+      const py=midY-p.V*scl;
+      if(pi===0)ct.moveTo(px,py);else ct.lineTo(px,py);
+    });
+    ct.stroke();
+    // Fill
+    ct.fillStyle='rgba(34,211,238,.1)';ct.beginPath();
+    ct.moveTo(xOff,midY);
+    diag.pts.forEach((p,pi)=>{ct.lineTo(xOff+pi*(segW/diag.pts.length),midY-p.V*scl);});
+    ct.lineTo(xOff+segW,midY);ct.closePath();ct.fill();
+    // Member label
+    ct.fillStyle='#64748b';ct.font='8px IBM Plex Mono';ct.textAlign='center';
+    ct.fillText('M'+(mi+1),xOff+segW/2,H-5);
+    // Separator
+    ct.strokeStyle='#1e2336';ct.lineWidth=1;ct.setLineDash([3,3]);
+    ct.beginPath();ct.moveTo(xOff+segW,20);ct.lineTo(xOff+segW,H-15);ctx.stroke();ct.setLineDash([]);
+    xOff+=segW;
+  });
+  ct.strokeStyle='#2a3360';ct.lineWidth=1;ct.beginPath();ct.moveTo(40,midY);ct.lineTo(W-10,midY);ct.stroke();
+  ct.fillStyle='#64748b';ct.font='9px IBM Plex Mono';ct.textAlign='right';ct.fillText('0',38,midY+3);
+  ct.fillStyle='#22d3ee';ct.textAlign='left';ct.fillText('V (kN)',44,26);
+}
+
+function drawBendingDiagram(){
+  const{c,ct,W,H}=setupDiagCanvas('bendingCanvas');
+  ct.fillStyle='#0e1118';ct.fillRect(0,0,W,H);
+  ct.fillStyle='#e2e8f0';ct.font='bold 10px IBM Plex Mono';ct.textAlign='center';ct.fillText('BENDING MOMENT DIAGRAM — per member (kN·m)',W/2,14);
+  if(!results||!results.memberDiagrams){
+    ct.fillStyle='#64748b';ct.font='10px IBM Plex Mono';ct.fillText('Run analysis first or add distributed loads for bending values.',W/2,H/2);return;
+  }
+  const diagrams=results.memberDiagrams;
+  const allM=diagrams.flatMap(d=>d.pts.map(p=>p.M));
+  const maxM=Math.max(...allM.map(Math.abs),0.001);
+  const midY=H-35;const scl=(H-55)/maxM;
+  const totalL=diagrams.reduce((s,d)=>s+d.L,0);
+  let xOff=50;
+  diagrams.forEach((diag,mi)=>{
+    const segW=Math.max(30,(W-60)*(diag.L/totalL));
+    // Fill under curve
+    ct.fillStyle='rgba(251,191,36,.12)';ct.beginPath();ct.moveTo(xOff,midY);
+    diag.pts.forEach((p,pi)=>ct.lineTo(xOff+pi*(segW/diag.pts.length),midY-p.M*scl));
+    ct.lineTo(xOff+segW,midY);ct.closePath();ct.fill();
+    // Curve
+    ct.strokeStyle='#fbbf24';ct.lineWidth=2;ct.beginPath();
+    diag.pts.forEach((p,pi)=>{
+      const px=xOff+pi*(segW/diag.pts.length);const py=midY-p.M*scl;
+      if(pi===0)ct.moveTo(px,py);else ct.lineTo(px,py);
+    });
+    ct.stroke();
+    // Peak label
+    const maxPt=diag.pts.reduce((a,b)=>Math.abs(b.M)>Math.abs(a.M)?b:a);
+    if(Math.abs(maxPt.M)>0.001){
+      const peakX=xOff+(maxPt.x/diag.L)*segW;
+      ct.fillStyle='#fbbf24';ct.font='8px IBM Plex Mono';ct.textAlign='center';
+      ct.fillText(maxPt.M.toFixed(1),peakX,midY-Math.abs(maxPt.M)*scl-4);
+    }
+    ct.fillStyle='#64748b';ct.font='8px IBM Plex Mono';ct.textAlign='center';
+    ct.fillText('M'+(mi+1),xOff+segW/2,H-5);
+    xOff+=segW;
+  });
+  ct.strokeStyle='#2a3360';ct.lineWidth=1;ct.beginPath();ct.moveTo(40,midY);ct.lineTo(W-10,midY);ct.stroke();
+  ct.fillStyle='#fbbf24';ct.textAlign='left';ct.font='9px IBM Plex Mono';ct.fillText('M (kN·m)',44,26);
+}
+
+function drawSummaryTable(){
+  if(!results)return;
+  const div=document.getElementById('bp-summary');
+  div.innerHTML=`
+  <table class="dtable" style="font-size:11px;width:100%">
+    <thead><tr><th>Member</th><th>i→j</th><th>L(m)</th><th>Angle(°)</th><th>Axial(kN)</th><th>Type</th><th>σ(MPa)</th><th>ε(×10⁻³)</th><th>δ(mm)</th></tr></thead>
+    <tbody>
+    ${results.forces.map((f,i)=>{
+      const m=members[i];const L=memberLen(m);
+      const dx=nodes[m.j].x-nodes[m.i].x,dy=nodes[m.j].y-nodes[m.i].y;
+      const ang=(Math.atan2(dy,dx)*180/Math.PI).toFixed(1);
+      const A=m.A*1e-4;const E=m.E*1e9;
+      const stress=f*1e3/A/1e6;// MPa
+      const strain=stress/(m.E*1e3);// (E in GPa)
+      const delta=f*1e3*L/(E*A)*1e3;// mm
+      const cls=Math.abs(f)<0.001?'z':f>0?'t':'c';
+      const type=Math.abs(f)<0.001?'Zero':f>0?'Tension':'Compression';
+      return`<tr>
+        <td>M${i+1}</td>
+        <td>N${m.i+1}→N${m.j+1}</td>
+        <td>${L.toFixed(3)}</td>
+        <td>${ang}</td>
+        <td class="${cls}">${f>0?'+':''}${f.toFixed(3)}</td>
+        <td><span class="badge badge-${cls==='t'?'t':'c'==='c'?'c':'z'}">${type}</span></td>
+        <td class="${cls}">${stress.toFixed(2)}</td>
+        <td>${(strain*1000).toFixed(3)}</td>
+        <td>${Math.abs(delta).toFixed(4)}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>
+  <div style="margin-top:10px;display:flex;gap:20px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);">
+    <span>σ = F/A  (stress in MPa)</span>
+    <span>ε = σ/E  (strain)</span>
+    <span>δ = FL/AE  (elongation mm)</span>
+  </div>`;
+}
+
+// ======= BOTTOM PANEL TABS =======
+function bpTab(id){
+  activeBpTab=id;
+  document.querySelectorAll('.bptab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.bp-pane').forEach(p=>p.classList.remove('on'));
+  event.target.classList.add('on');
+  document.getElementById('bp-'+id).classList.add('on');
+  if(results)drawDiagrams();
+}
+
+// ======= SIDEBAR TABS =======
+function sTab(id){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.stab-body').forEach(b=>b.classList.remove('on'));
+  const tabs=['draw','props','loads','presets'];
+  document.querySelectorAll('.stab').forEach((t,i)=>{if(tabs[i]===id)t.classList.add('on');});
+  document.getElementById('st-'+id).classList.add('on');
+}
+
+// ======= VIEW CONTROLS =======
+function fitView(){
+  if(nodes.length===0){scale=60;origin={x:100,y:canvas.height/2};drawAll();return;}
+  const xs=nodes.map(n=>n.x),ys=nodes.map(n=>n.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const rng=Math.max(maxX-minX,maxY-minY,.1);
+  const pad=100;
+  scale=Math.min((canvas.width-pad*2)/Math.max(rng,.1),(canvas.height-pad*2)/Math.max(rng,.1));
+  origin.x=(canvas.width-(minX+maxX)*scale)/2;
+  origin.y=canvas.height-(canvas.height-(minY+maxY)*scale)/2;
+  drawAll();
+}
+function zoomIn(){scale=Math.min(400,scale*1.2);drawAll();}
+function zoomOut(){scale=Math.max(8,scale/1.2);drawAll();}
+function toggleGrid(){showGrid=!showGrid;drawAll();}
+
+// ======= EXPORT =======
+function exportSVG(){
+  if(nodes.length===0){alert('Nothing to export.');return;}
+  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" style="background:#0e1118">`;
+  members.forEach((m,mi)=>{
+    const n1=nodes[m.i],n2=nodes[m.j];if(!n1||!n2)return;
+    const p1={x:50+n1.x*60,y:450-n1.y*60},p2={x:50+n2.x*60,y:450-n2.y*60};
+    let color='#3a4a78';
+    if(results&&results.forces){const f=results.forces[mi];color=f>0.001?'#34d399':f<-0.001?'#f87171':'#3a4a78';}
+    svg+=`<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="3"/>`;
+  });
+  nodes.forEach((n,ni)=>{
+    const p={x:50+n.x*60,y:450-n.y*60};
+    svg+=`<circle cx="${p.x}" cy="${p.y}" r="6" fill="#161924" stroke="${n.support!=='none'?'#4f8cff':'#3a4a78'}" stroke-width="2"/>`;
+    svg+=`<text x="${p.x}" y="${p.y-10}" fill="#94a3b8" font-size="10" font-family="monospace" text-anchor="middle">N${ni+1}</text>`;
+  });
+  svg+=`</svg>`;
+  const a=document.createElement('a');a.href='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  a.download='truss.svg';a.click();
+}
+
+// ======= CLEAR =======
+function clearAll(){
+  nodes=[];members=[];loads=[];results=null;selNode=-1;selMember=-1;memberFirstNode=-1;
+  document.getElementById('rpBody').innerHTML='<div class="empty-hint">Build a truss and click<br>ANALYZE to see results.</div>';
+  const diagPanes=['axialCanvas','shearCanvas','bendingCanvas'];
+  diagPanes.forEach(id=>{const c=document.getElementById(id);if(c){const ct=c.getContext('2d');ct.fillStyle='#0c0e14';ct.fillRect(0,0,c.width||800,c.height||190);}});
+  document.getElementById('bp-summary').innerHTML='';
+  refreshLists();drawAll();
+  document.getElementById('sMsg').textContent='';
+}
+
+// ======= PRESETS =======
+function loadPreset(name){
+  clearAll();
+  const E=200,A=10;
+  const P={
+    simple:{
+      nodes:[{x:0,y:0,support:'pin'},{x:4,y:0,support:'roller_x'},{x:2,y:3,support:'none'}],
+      members:[{i:0,j:1},{i:1,j:2},{i:0,j:2}],
+      loads:[{type:'point',node:2,fx:0,fy:-80}]
+    },
+    warren:{
+      nodes:[{x:0,y:0,support:'pin'},{x:2,y:0,support:'none'},{x:4,y:0,support:'none'},{x:6,y:0,support:'roller_x'},{x:1,y:1.73,support:'none'},{x:3,y:1.73,support:'none'},{x:5,y:1.73,support:'none'}],
+      members:[{i:0,j:1},{i:1,j:2},{i:2,j:3},{i:0,j:4},{i:4,j:5},{i:5,j:6},{i:6,j:3},{i:1,j:4},{i:1,j:5},{i:2,j:5},{i:2,j:6}],
+      loads:[{type:'udl',member:0,w:-20,dir:'y'},{type:'point',node:1,fx:0,fy:-40},{type:'point',node:2,fx:0,fy:-40}]
+    },
+    pratt:{
+      nodes:[{x:0,y:0,support:'pin'},{x:2,y:0,support:'none'},{x:4,y:0,support:'none'},{x:6,y:0,support:'none'},{x:8,y:0,support:'roller_x'},{x:0,y:2,support:'none'},{x:2,y:2,support:'none'},{x:4,y:2,support:'none'},{x:6,y:2,support:'none'}],
+      members:[{i:0,j:1},{i:1,j:2},{i:2,j:3},{i:3,j:4},{i:5,j:6},{i:6,j:7},{i:7,j:8},{i:0,j:5},{i:1,j:6},{i:2,j:7},{i:3,j:8},{i:4,j:8},{i:1,j:5},{i:2,j:6},{i:3,j:7}],
+      loads:[{type:'point',node:1,fx:0,fy:-30},{type:'point',node:2,fx:0,fy:-40},{type:'point',node:3,fx:0,fy:-30},{type:'udl',member:4,w:-15,dir:'y'}]
+    },
+    howe:{
+      nodes:[{x:0,y:0,support:'pin'},{x:2,y:0,support:'none'},{x:4,y:0,support:'none'},{x:6,y:0,support:'none'},{x:8,y:0,support:'roller_x'},{x:0,y:2,support:'none'},{x:2,y:2,support:'none'},{x:4,y:2,support:'none'},{x:6,y:2,support:'none'}],
+      members:[{i:0,j:1},{i:1,j:2},{i:2,j:3},{i:3,j:4},{i:5,j:6},{i:6,j:7},{i:7,j:8},{i:0,j:5},{i:1,j:6},{i:2,j:7},{i:3,j:8},{i:4,j:8},{i:5,j:1},{i:6,j:2},{i:7,j:3}],
+      loads:[{type:'point',node:1,fx:0,fy:-25},{type:'point',node:2,fx:0,fy:-35},{type:'point',node:3,fx:0,fy:-25},{type:'vdl',member:0,w1:-5,w2:-20,dir:'y'}]
+    },
+    fink:{
+      nodes:[{x:0,y:0,support:'pin'},{x:2,y:0,support:'none'},{x:4,y:0,support:'none'},{x:6,y:0,support:'none'},{x:8,y:0,support:'roller_x'},{x:2,y:1.5,support:'none'},{x:4,y:3,support:'none'},{x:6,y:1.5,support:'none'},{x:3,y:1.5,support:'none'}],
+      members:[{i:0,j:1},{i:1,j:2},{i:2,j:3},{i:3,j:4},{i:0,j:6},{i:4,j:6},{i:1,j:5},{i:5,j:6},{i:3,j:7},{i:7,j:6},{i:5,j:8},{i:8,j:2},{i:2,j:7},{i:0,j:5},{i:4,j:7}],
+      loads:[{type:'point',node:5,fx:0,fy:-20},{type:'point',node:6,fx:0,fy:-30},{type:'point',node:7,fx:0,fy:-20}]
+    },
+    k:{
+      nodes:[{x:0,y:0,support:'pin'},{x:3,y:0,support:'none'},{x:6,y:0,support:'none'},{x:9,y:0,support:'roller_x'},{x:0,y:3,support:'none'},{x:3,y:3,support:'none'},{x:6,y:3,support:'none'},{x:9,y:3,support:'none'},{x:3,y:1.5,support:'none'},{x:6,y:1.5,support:'none'}],
+      members:[{i:0,j:1},{i:1,j:2},{i:2,j:3},{i:4,j:5},{i:5,j:6},{i:6,j:7},{i:0,j:4},{i:7,j:3},{i:1,j:8},{i:8,j:4},{i:8,j:5},{i:2,j:9},{i:9,j:6},{i:9,j:7},{i:4,j:1},{i:7,j:2},{i:5,j:6}],
+      loads:[{type:'point',node:1,fx:0,fy:-50},{type:'point',node:2,fx:0,fy:-50},{type:'udl',member:3,w:-15,dir:'y'}]
+    },
+    cantilever:{
+      nodes:[{x:0,y:0,support:'fixed'},{x:0,y:2,support:'fixed'},{x:2,y:0,support:'none'},{x:2,y:2,support:'none'},{x:4,y:0,support:'none'},{x:4,y:2,support:'none'}],
+      members:[{i:0,j:2},{i:2,j:4},{i:1,j:3},{i:3,j:5},{i:0,j:1},{i:2,j:3},{i:4,j:5},{i:0,j:3},{i:2,j:5}],
+      loads:[{type:'point',node:4,fx:0,fy:-60},{type:'point',node:5,fx:0,fy:-60}]
+    },
+    baltimore:{
+      nodes:[{x:0,y:0,support:'pin'},{x:2,y:0,support:'none'},{x:4,y:0,support:'none'},{x:6,y:0,support:'none'},{x:8,y:0,support:'none'},{x:10,y:0,support:'roller_x'},{x:0,y:2,support:'none'},{x:4,y:2,support:'none'},{x:8,y:2,support:'none'},{x:2,y:1,support:'none'},{x:6,y:1,support:'none'}],
+      members:[{i:0,j:1},{i:1,j:2},{i:2,j:3},{i:3,j:4},{i:4,j:5},{i:6,j:7},{i:7,j:8},{i:0,j:6},{i:5,j:8},{i:6,j:7},{i:7,j:8},{i:1,j:9},{i:9,j:6},{i:9,j:7},{i:3,j:10},{i:10,j:7},{i:10,j:8}],
+      loads:[{type:'point',node:1,fx:0,fy:-30},{type:'point',node:2,fx:0,fy:-40},{type:'point',node:3,fx:0,fy:-40},{type:'point',node:4,fx:0,fy:-30}]
+    }
+  };
+  const pr=P[name];if(!pr)return;
+  pr.nodes.forEach(n=>nodes.push({...n}));
+  pr.members.forEach(m=>members.push({...m,E,A}));
+  pr.loads.forEach(l=>loads.push({...l}));
+  refreshLists();drawAll();setTimeout(fitView,80);
+  document.getElementById('sMsg').textContent='Preset loaded — go to LOADS and click ANALYZE';
+}
+
+// ======= INIT =======
+refreshLists();
+drawAll();
+setTimeout(()=>{fitView();
+  const diagIds=['axialCanvas','shearCanvas','bendingCanvas'];
+  diagIds.forEach(id=>{const c=document.getElementById(id);if(c){c.width=c.parentElement.clientWidth||800;c.height=c.parentElement.clientHeight||190;const ct=c.getContext('2d');ct.fillStyle='#0c0e14';ct.fillRect(0,0,c.width,c.height);}});
+},100);
+</script>
+</body>
+</html>
